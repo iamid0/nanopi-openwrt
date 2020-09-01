@@ -1,4 +1,4 @@
-name: r2s Lean版openwrt minimal 
+name: r2s Lean mini
 
 on:
   push:
@@ -6,15 +6,15 @@ on:
       - master
     paths:
       - '.github/workflows/r2s_lean_minimal.yml'
-  schedule:
-    - cron: '10 08 * * *'
+#  schedule:
+#    - cron: '10 08 * * *'
 
 jobs:
 
   build:
 
     runs-on: ubuntu-latest
-    if: github.repository == 'klever1988/nanopi-openwrt'
+    
 
     steps:
 
@@ -77,6 +77,8 @@ jobs:
           CONFIG_LIBSODIUM_MINIMAL=y
           CONFIG_PACKAGE_ddns-scripts_aliyun=y
           CONFIG_PACKAGE_ddns-scripts_cloudflare.com-v4=y
+          
+          # ssr-plus stuff
           CONFIG_PACKAGE_luci-app-ssr-plus=y
           CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_Kcptun=y
           CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_DNS2SOCKS=y
@@ -86,17 +88,30 @@ jobs:
           CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_Trojan=y
           CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_V2ray=y
           CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_V2ray_plugin=y
+          
+          # WebUI
           CONFIG_PACKAGE_luci-app-uhttpd=y
+
+          # NeteasyMusic
           CONFIG_PACKAGE_luci-app-unblockmusic=y
+          CONFIG_UnblockNeteaseMusic_Go=y
+          CONFIG_UnblockNeteaseMusic_NodeJS=y
+
+          # V2ray
           CONFIG_PACKAGE_luci-app-v2ray-server=y
           CONFIG_PACKAGE_luci-app-vssr=y
+
+          # theme
           CONFIG_PACKAGE_luci-theme-argon=y
           CONFIG_PACKAGE_luci-theme-material=y
           CONFIG_PACKAGE_luci-theme-netgear=y
-          CONFIG_PACKAGE_luci-app-unblockmusic=y
+
+          # duplicate
+          #CONFIG_PACKAGE_luci-app-unblockmusic=y
+          
           CONFIG_PACKAGE_kmod-rtl8xxxu=y
-          CONFIG_UnblockNeteaseMusic_Go=y
-          CONFIG_UnblockNeteaseMusic_NodeJS=y
+
+          #passwall stuff
           CONFIG_PACKAGE_luci-app-passwall=y
           CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Brook=y
           CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_ShadowsocksR_Server=y
@@ -105,8 +120,13 @@ jobs:
           CONFIG_PACKAGE_luci-app-passwall_INCLUDE_simple-obfs=y
           CONFIG_PACKAGE_luci-app-passwall_INCLUDE_v2ray-plugin=y
           CONFIG_PACKAGE_luci-app-passwall_INCLUDE_https_dns_proxy=n
+          
+          # openclash 
           CONFIG_PACKAGE_luci-app-openclash=y
+
+          # zerotier, maybe not work in mainland
           CONFIG_PACKAGE_luci-app-zerotier=y
+
           # CONFIG_PACKAGE_luci-app-accesscontrol is not set
           # CONFIG_PACKAGE_luci-app-nlbwmon is not set
           # CONFIG_PACKAGE_nlbwmon is not set
@@ -124,12 +144,38 @@ jobs:
           # CONFIG_PACKAGE_kmod-cryptodev is not set
           # CONFIG_PACKAGE_libopenssl-devcrypto is not set
           # CONFIG_V2RAY_COMPRESS_UPX is not set
+
+          # to set OLED modes 
           CONFIG_PACKAGE_luci-app-oled=y
+
+          # block Ads? 
           CONFIG_PACKAGE_luci-app-adguardhome=y
+
           CONFIG_PACKAGE_luci-app-flowoffload=y
           # CONFIG_PACKAGE_luci-app-sfe is not set
           CONFIG_DROPBEAR_ECC=y
           CONFIG_DROPBEAR_ECC_FULL=y
+
+          ### try to add wireguard
+          CONFIG_PACKAGE_kmod-wireguard=y
+          CONFIG_PACKAGE_luci-app-wireguard=y
+          CONFIG_PACKAGE_luci-proto-wireguard=y
+          CONFIG_PACKAGE_luci-i18n-wireguard-zh-cn=y
+          CONFIG_PACKAGE_wireguard=y
+          CONFIG_PACKAGE_wireguard-tools=y
+          
+          # try to add ttyd
+          CONFIG_PACKAGE_luci-app-ttyd=y
+          CONFIG_PACKAGE_luci-i18n-ttyd-zh-cn=y
+          CONFIG_PACKAGE_ttyd=y
+          
+          # for storage
+          CONFIG_PACKAGE_mount-utils=y
+          CONFIG_PACKAGE_TAR_BZIP2=y
+          CONFIG_PACKAGE_TAR_GZIP=y
+          CONFIG_PACKAGE_TAR_XZ=y
+          CONFIG_PACKAGE_TAR_ZSTD=y
+          CONFIG_PACKAGE_usbutils=y
           ' >> configs/config_rk3328
           cd friendlywrt
           git config --local user.email "action@github.com" && git config --local user.name "GitHub Action"
@@ -174,6 +220,7 @@ jobs:
           mv ../../scripts/check_wan4.sh package/base-files/files/usr/bin && sed -i '/exit/i\/bin/sh /usr/bin/check_wan4.sh &' package/base-files/files/etc/rc.local
           mv ../../scripts/autoupdate.sh package/base-files/files/root/au.sh && chmod +x package/base-files/files/root/au.sh
           echo -e '\nDYC Build\n' >> package/base-files/files/etc/banner
+          echo -e '\nModified by iamid0 to add ttyd and wireguard.\n' >> package/base-files/files/etc/banner
 
       - name: Add OpenClash
         run: |
@@ -223,23 +270,9 @@ jobs:
           zip -r artifact.zip ./artifact/
           release_tag="R2S-Minimal-$(date +%Y-%m-%d)"
           echo "##[set-output name=release_tag;]$release_tag"
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.sec_token }}
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@master
         with:
-          tag_name: ${{ steps.assemble_artifact.outputs.release_tag }}
-          release_name: 自动发布 ${{ steps.assemble_artifact.outputs.release_tag }}
-          draft: false
-          prerelease: false
-      - name: Upload Release Asset
-        id: upload-release-asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.sec_token }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
-          asset_path: ./artifact.zip
-          asset_name: ${{ steps.assemble_artifact.outputs.release_tag }}-ROM.zip
-          asset_content_type: application/zip
+          name: FriendlyWrt_NanoPi-R2S_lean-mini-iamid0
+          path: ./artifact/
