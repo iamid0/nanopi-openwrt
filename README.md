@@ -1,3 +1,7 @@
+## Update Note
+The original code is forked from klever1988. 
+Now try to add ttyd and wireguard onto r2s-mini firmware. 
+
 ## Nanopi r1s r2s openwrt 固件自动编译
 
 ### 发布地址：
